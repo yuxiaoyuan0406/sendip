@@ -1,0 +1,15 @@
+[Unit]
+Description=a service to send ip through email
+After=my_wpa.service
+
+StartLimitIntervalSec=500
+StartLimitBurst=5
+
+[Service]
+Type=simple
+ExecStart=/home/pi/Program/email/send_ip.py
+Restart=on-failure
+RestartSec=5s
+
+[Install]
+WantedBy=multi-user.target
