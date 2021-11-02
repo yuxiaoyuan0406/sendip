@@ -18,23 +18,23 @@ def _ping(addr: str):
     return os.system('ping {} -c 3'.format(addr))
 
 if __name__ == "__main__":
-    sleep(20)
+    # sleep(20)
 
     assert len(sys.argv) >= 2, '[ERROR]: No config file. '
     config_file = sys.argv[1]
 
     with open(config_file) as f:
         config = json.load(f)
-        print(config)
+        # print(config)
     from_addr = config['from']
     password = config['password']
     to_addr = config['to']
     smtp_server = config['server']
-    ip_file = '/tmp/.hostname'
+    ip_file = '/etc/sendip/.hostname'
 
     assert _ping(smtp_server) is 0, 'Network connection failed. '
 
-    os.system("hostname -I > "+ip_file)
+    # os.system("hostname -I > "+ip_file)
     ip_file = open(ip_file)
 
     # '''
@@ -50,5 +50,5 @@ if __name__ == "__main__":
 
     server.quit()
     # '''
-    print(ip_file.readline().replace(' ', '\n'))
+    # print(ip_file.readline().replace(' ', '\n'))
     ip_file.close()
