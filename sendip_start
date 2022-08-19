@@ -7,9 +7,9 @@ diff /etc/sendip/.hostname <(hostname -I)
 if [ $? == 0 ]
 then
     echo "no need to update hostname"
-    /usr/local/bin/send_ip.py /etc/sendip/email.json
+    # /usr/local/bin/send_ip.py /etc/sendip/email.json
 else
     echo "updating hostname"
-    hostname -I > /etc/sendip/.hostname
+    # hostname -I > /etc/sendip/.hostname
     /usr/local/bin/send_ip.py /etc/sendip/email.json
 fi
