@@ -14,8 +14,17 @@ def _format_addr(s: str):
     name, addr = parseaddr(s)
     return formataddr((Header(name, 'utf-8').encode(), addr))
 
-def _ping(addr: str):
-    return os.system('ping {} -c 3 >> /dev/null'.format(addr))
+# def _ping(addr: str):
+#     return os.system('ping {} -c 3 >> /dev/null'.format(addr))
+
+def _ping(host: str, count: int = 3):
+    '''
+    ping a host for limited times
+    '''
+    return os.system('ping {} -c {} >> /dev/null'.format(
+        host, count
+    ))
+
 
 if __name__ == "__main__":
     # sleep(20)
@@ -24,12 +33,12 @@ if __name__ == "__main__":
     config_file = sys.argv[1]
 
     with open(config_file) as f:
-        config = json.load(f)
+        config: dict = json.load(f)
         # print(config)
-    from_addr = config['from']
-    password = config['password']
-    to_addr = config['to']
-    smtp_server = config['server']
+    from_addr = config.get('from')# config['from']
+    password = config.get('password')
+    to_addr = config.get('to')
+    smtp_server = config.get('server')
     ip_file = '/etc/sendip/.hostname'
 
     assert _ping(smtp_server) is 0, 'Network connection failed. '
