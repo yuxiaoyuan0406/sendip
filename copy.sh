@@ -2,6 +2,7 @@
 sudo cp send_ip.py /usr/local/bin/
 sudo cp sendip.service /usr/lib/systemd/system/
 sudo mkdir /etc/sendip -p
+sudo touch /etc/sendip/email.json
 chmod a+x sendip_st*
 sudo cp sendip_st* /etc/sendip/
 sudo cp email.json /etc/sendip/
