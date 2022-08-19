@@ -15,7 +15,7 @@ def _format_addr(s: str):
     return formataddr((Header(name, 'utf-8').encode(), addr))
 
 def _ping(addr: str):
-    return os.system('ping {} -c 3'.format(addr))
+    return os.system('ping {} -c 3 >> /dev/null'.format(addr))
 
 if __name__ == "__main__":
     # sleep(20)
@@ -34,7 +34,8 @@ if __name__ == "__main__":
 
     assert _ping(smtp_server) is 0, 'Network connection failed. '
 
-    # os.system("hostname -I > "+ip_file)
+    os.system("hostname -I > "+ip_file)
+    os.system("echo \"diff /etc/sendip/.hostname <(hostname -I)\" | bash")
     ip_file = open(ip_file)
 
     # '''
