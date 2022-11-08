@@ -10,7 +10,7 @@ PIDFile=/etc/sendip/sendip.pid
 ExecStart=/etc/sendip/sendip_start
 ExecStop=/etc/sendip/sendip_stop
 Restart=always
-RestartSec=10
+RestartSec=10m
 
 [Install]
 WantedBy=multi-user.target
