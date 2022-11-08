@@ -35,10 +35,10 @@ if __name__ == "__main__":
     with open(config_file) as f:
         config: dict = json.load(f)
         # print(config)
-    from_addr = config.get('from')# config['from']
-    password = config.get('password')
-    to_addr = config.get('to')
-    smtp_server = config.get('server')
+    from_addr = config.get('from', '')# config['from']
+    password = config.get('password', '')
+    to_addr = config.get('to', '')
+    smtp_server = config.get('server', '')
     ip_file = '/etc/sendip/.hostname'
 
     assert _ping(smtp_server) is 0, 'Network connection failed. '
