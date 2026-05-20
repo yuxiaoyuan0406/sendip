@@ -6,7 +6,6 @@ from email.mime.text import MIMEText
 from email.utils import parseaddr, formataddr
 import smtplib
 import os
-from time import sleep
 import json
 import sys
 import subprocess
@@ -19,7 +18,7 @@ def _format_addr(s: str):
 
 def _ping(host: str, count: int = 3):
     """
-    ping a host for limited times
+    Ping a host for limited times.
     """
     return os.system('ping {} -c {} >> /dev/null'.format(host, count))
 
@@ -28,7 +27,7 @@ def get_ipv4_addr(interface: str):
     """
     Get IPv4 addresses of a specified network interface using system command `ip`.
 
-    Example command:
+    Example:
         ip -4 addr show dev eth0
     """
     try:
@@ -60,23 +59,74 @@ def get_ipv4_addr(interface: str):
     return ipv4_addrs
 
 
-def write_selected_ipv4_addrs(ip_file: str, interfaces: list):
+def get_selected_ipv4_content(interfaces: list):
     """
-    Write selected interfaces' IPv4 addresses to file.
-    """
-    with open(ip_file, "w", encoding="utf-8") as f:
-        for interface in interfaces:
-            ipv4_addrs = get_ipv4_addr(interface)
+    Generate the current IPv4 address content for selected interfaces.
 
-            for addr in ipv4_addrs:
-                f.write(f"{interface}: {addr}\n")
+    Output example:
+        eth0: 192.168.1.101
+        wlan0: 192.168.1.102
+    """
+    lines = []
+
+    for interface in interfaces:
+        ipv4_addrs = get_ipv4_addr(interface)
+
+        for addr in ipv4_addrs:
+            lines.append(f"{interface}: {addr}")
+
+    return "\n".join(lines) + "\n"
+
+
+def read_file_content(path: str):
+    """
+    Read file content. Return empty string if file does not exist.
+    """
+    if not os.path.exists(path):
+        return ""
+
+    with open(path, "r", encoding="utf-8") as f:
+        return f.read()
+
+
+def write_file_content(path: str, content: str):
+    """
+    Write content to file.
+    """
+    with open(path, "w", encoding="utf-8") as f:
+        f.write(content)
+
+
+def send_email(
+    smtp_server: str,
+    from_addr: str,
+    password: str,
+    to_addr: str,
+    subject: str,
+    content: str
+):
+    """
+    Send email.
+    """
+    server = smtplib.SMTP(smtp_server, 25)
+    server.set_debuglevel(1)
+    server.login(from_addr, password)
+
+    msg = MIMEText(content, 'plain', 'utf-8')
+    msg['From'] = _format_addr(from_addr)
+    msg['To'] = _format_addr(to_addr)
+    msg['Subject'] = Header(subject, 'utf-8').encode()
+
+    server.sendmail(from_addr, [to_addr], msg.as_string())
+    server.quit()
 
 
 if __name__ == "__main__":
-    assert len(sys.argv) >= 2, '[ERROR]: No config file. '
+    assert len(sys.argv) >= 2, '[ERROR]: No config file.'
+
     config_file = sys.argv[1]
 
-    with open(config_file) as f:
+    with open(config_file, "r", encoding="utf-8") as f:
         config: dict = json.load(f)
 
     from_addr = config.get('from', '')
@@ -85,35 +135,39 @@ if __name__ == "__main__":
     smtp_server = config.get('server', '')
 
     ip_file = '/etc/sendip/.hostname'
+    pid_file = '/etc/sendip/sendip.pid'
 
-    # 在这里指定需要导出的网卡名称
-    # 可以根据实际情况修改，例如 ["eth0", "wlan0", "eno1"]
-    interface_list = [
-        "eth0",
-        "wlan0",
-        "oray_vnc",
-    ]
+    # 保存当前 Python 脚本进程 PID，等价于原 Bash 中的：
+    # echo $$ > /etc/sendip/sendip.pid
+    write_file_content(pid_file, str(os.getpid()) + "\n")
 
-    assert _ping(smtp_server) == 0, 'Network connection failed. '
+    # 在这里指定需要检查和导出的网卡
+    # interface_list = [
+    #     "eth0",
+    #     "wlan0",
+    # ]
+    interface_list = config.get('interfaces', ["eth0", "wlan0"])
 
-    # 获取指定网卡的 IPv4 地址并写入文件
-    write_selected_ipv4_addrs(ip_file, interface_list)
+    assert _ping(smtp_server) == 0, 'Network connection failed.'
 
-    # 显示当前文件内容和实时查询结果的差异，可选
-    # 如果不需要，可以删除这一行
-    os.system("cat " + ip_file)
+    old_ip_content = read_file_content(ip_file)
+    new_ip_content = get_selected_ipv4_content(interface_list)
 
-    with open(ip_file, "r", encoding="utf-8") as f:
-        ip_content = f.read()
+    if old_ip_content == new_ip_content:
+        print("no need to update hostname")
+        sys.exit(0)
 
-    server = smtplib.SMTP(smtp_server, 25)
-    server.set_debuglevel(1)
-    server.login(from_addr, password)
+    print("updating hostname")
 
-    msg = MIMEText(ip_content, 'plain', 'utf-8')
-    msg['From'] = _format_addr(from_addr)
-    msg['To'] = _format_addr(to_addr)
-    msg['Subject'] = Header('rpi system ip', 'utf-8').encode()
-    server.sendmail(from_addr, [to_addr], msg.as_string())
+    # 更新 /etc/sendip/.hostname
+    write_file_content(ip_file, new_ip_content)
 
-    server.quit()
+    # 发送邮件
+    send_email(
+        smtp_server=smtp_server,
+        from_addr=from_addr,
+        password=password,
+        to_addr=to_addr,
+        subject='rpi system ip',
+        content=new_ip_content
+    )
